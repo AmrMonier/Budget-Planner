@@ -4,6 +4,14 @@ import { AppService } from './app.service';
 import { ConfigModule } from './config/config.module';
 import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { ConfigService } from './config/config.service';
+import { MailerModule } from './mailer/mailer.module';
+import { AuthModule } from './auth/auth.module';
+import {
+  MiddlewareConfiguration,
+  MiddlewareConsumer,
+} from '@nestjs/common/interfaces';
+import { AuthenticatedMiddleware } from './middlewares/authenticated.middleware';
+import { VerifiedMiddleware } from './middlewares/verified.middleware';
 
 @Module({
   imports: [
@@ -24,8 +32,20 @@ import { ConfigService } from './config/config.service';
         entities: ['src/**/**.entity.(ts|js)'],
       }),
     }),
+    MailerModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule {
+  configure(consumer: MiddlewareConsumer): void {
+    consumer
+      .apply(AuthenticatedMiddleware)
+      .exclude('auth/(.*)')
+      .forRoutes('*')
+      .apply(VerifiedMiddleware)
+      .exclude('auth/(.*)')
+      .forRoutes('*');
+  }
+}

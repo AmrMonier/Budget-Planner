@@ -6,12 +6,16 @@ import * as Joi from 'joi';
 export class ConfigService {
   private readonly logger = new Logger(ConfigService.name);
   public env: {
+    APP_URL: string;
     PORT: number;
     DB_HOST: string;
     DB_USER: string;
     DB_NAME: string;
     DB_PASSWORD: string;
     DB_PORT: number;
+    NODEMAILER_PASSWORD: string;
+    NODEMAILER_USER: string;
+    APP_SECRET: string;
   };
   constructor(environment: string) {
     if (!environment) throw new Error('Environment Must be provided');
@@ -29,12 +33,16 @@ export class ConfigService {
 
   private validateEnvironmentVariables(config: any) {
     const validationScheme = Joi.object({
+      APP_URL: Joi.string().required(),
       PORT: Joi.number().required().port(),
       DB_HOST: Joi.string().required().hostname(),
       DB_USER: Joi.string().required(),
       DB_NAME: Joi.string().required(),
       DB_PASSWORD: Joi.string().required(),
       DB_PORT: Joi.number().required().port(),
+      NODEMAILER_PASSWORD: Joi.string().required(),
+      NODEMAILER_USER: Joi.string().required(),
+      APP_SECRET: Joi.string().required(),
     });
     const { error, value } = validationScheme.validate(config);
     if (error) throw new Error(`Env Error: ${error.message}`);
@@ -43,12 +51,16 @@ export class ConfigService {
 
   private initEnvironmentVariables(config: { [key: string]: string }) {
     this.env = {
+      APP_URL: config.APP_URL,
       DB_HOST: config.DB_HOST,
       DB_NAME: config.DB_NAME,
       DB_PASSWORD: config.DB_PASSWORD,
       DB_PORT: +config.DB_PORT,
       DB_USER: config.DB_USER,
       PORT: +config.PORT,
+      NODEMAILER_PASSWORD: config.NODEMAILER_PASSWORD,
+      NODEMAILER_USER: config.NODEMAILER_USER,
+      APP_SECRET: config.APP_SECRET,
     };
   }
 }
