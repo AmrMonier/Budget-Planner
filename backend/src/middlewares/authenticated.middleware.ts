@@ -5,11 +5,12 @@ import {
 } from '@nestjs/common';
 import { NextFunction, Request, Response } from 'express';
 import * as jwt from 'jsonwebtoken';
+import { User } from 'src/auth/entities/user.entity';
 import { ConfigService } from 'src/config/config.service';
 @Injectable()
 export class AuthenticatedMiddleware implements NestMiddleware {
   constructor(private configService: ConfigService) {}
-  use(req: Request, res: Response, next: NextFunction) {
+  async use(req: Request, res: Response, next: NextFunction) {
     const authorizationHeader = req.headers.authorization;
 
     if (!(authorizationHeader && authorizationHeader.startsWith('Bearer '))) {
@@ -20,7 +21,12 @@ export class AuthenticatedMiddleware implements NestMiddleware {
     try {
       const decodedToken = jwt.verify(token, this.configService.env.APP_SECRET); // Replace with your actual secret key
       // Attach the decoded token to the request for future use
-      req['user'] = decodedToken;
+
+      const user = await User.findOneBy({
+        id: decodedToken['userId'] as number,
+      });
+      throw Error('token user not found');
+      req.user = user;
     } catch (error) {
       throw new UnauthorizedException({ errors: ['unauthenticated'] });
     }

@@ -1,10 +1,12 @@
-import { Injectable, NestMiddleware } from '@nestjs/common';
-import { log } from 'console';
+import { ForbiddenException, Injectable, NestMiddleware } from '@nestjs/common';
+
+import { NextFunction, Request, Response } from 'express';
 
 @Injectable()
 export class VerifiedMiddleware implements NestMiddleware {
-  use(req: any, res: any, next: () => void) {
-    log('Verified');
+  use(req: Request, res: Response, next: NextFunction) {
+    if (!req.user?.isVerified)
+      throw new ForbiddenException({ errors: ['Unverified account'] });
     next();
   }
 }
