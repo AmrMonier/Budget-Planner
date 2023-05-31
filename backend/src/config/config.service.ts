@@ -43,7 +43,9 @@ export class ConfigService {
       NODEMAILER_PASSWORD: Joi.string().required(),
       NODEMAILER_USER: Joi.string().required(),
       APP_SECRET: Joi.string().required(),
-    });
+    })
+      .unknown(true)
+      .options({ convert: true });
     const { error, value } = validationScheme.validate(config);
     if (error) throw new Error(`Env Error: ${error.message}`);
     return value;
