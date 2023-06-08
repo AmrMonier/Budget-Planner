@@ -1,15 +1,15 @@
+
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
+import PrimeVue from 'primevue/config';
+
 import App from './App.vue'
 import router from './router'
 
-// Nucleo Icons
-import './assets/css/nucleo-icons.css'
-import './assets/css/nucleo-svg.css'
-
-import materialKit from './material-kit'
+import '@/assets/styles.scss';
 
 const app = createApp(App)
+app.use(PrimeVue, { ripple: true });
 
 app.use(createPinia())
 app.use(router)
