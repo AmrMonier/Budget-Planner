@@ -1,17 +1,17 @@
+
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
-import App from '@/App.vue'
+
+import PrimeVue from 'primevue/config';
+
+import App from './App.vue'
 import router from './router'
 
-// Nucleo Icons
-import './assets/css/nucleo-icons.css'
-import './assets/css/nucleo-svg.css'
-
-import materialKit from './material-kit'
-import axiosInstance from '@/services/axios.service'
+import '@/assets/styles.scss';
 
 const app = createApp(App)
-app.config.globalProperties.$axios = axiosInstance
+app.use(PrimeVue, { ripple: true });
+
 app.use(createPinia())
 app.use(router)
 app.use(materialKit)
