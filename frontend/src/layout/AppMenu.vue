@@ -6,14 +6,14 @@ import AppMenuItem from './AppMenuItem.vue';
 const model = ref([
     {
         label: 'Home',
-        items: [{ label: 'Dashboard', icon: 'pi pi-fw pi-home', to: '/' }]
+        items: [{ label: 'Dashboard', icon: 'pi pi-fw pi-home', to: '/', items: [{label: 'Analytics', icon:  '', to: ''}] }]
     },
     {
-        label: 'UI Components',
+        label: 'Budgets',
         items: [
-            { label: 'Form Layout', icon: 'pi pi-fw pi-id-card', to: '/uikit/formlayout' },
-            { label: 'Input', icon: 'pi pi-fw pi-check-square', to: '/uikit/input' },
-            { label: 'Float Label', icon: 'pi pi-fw pi-bookmark', to: '/uikit/floatlabel' },
+            { label: 'Budget A', icon: 'pi pi-fw pi-id-card', to: '/uikit/formlayout' },
+            { label: 'Budget B', icon: 'pi pi-fw pi-check-square', to: '/uikit/input' },
+            { label: 'Budget C', icon: 'pi pi-fw pi-bookmark', to: '/uikit/floatlabel' },
             { label: 'Invalid State', icon: 'pi pi-fw pi-exclamation-circle', to: '/uikit/invalidstate' },
             { label: 'Button', icon: 'pi pi-fw pi-mobile', to: '/uikit/button', class: 'rotated-icon' },
             { label: 'Table', icon: 'pi pi-fw pi-table', to: '/uikit/table' },
@@ -30,10 +30,10 @@ const model = ref([
         ]
     },
     {
-        label: 'Prime Blocks',
+        label: 'Saving Goals',
         items: [
-            { label: 'Free Blocks', icon: 'pi pi-fw pi-eye', to: '/blocks', badge: 'NEW' },
-            { label: 'All Blocks', icon: 'pi pi-fw pi-globe', url: 'https://www.primefaces.org/primeblocks-vue', target: '_blank' }
+            { label: 'Goal A', icon: 'pi pi-fw pi-eye', to: '/blocks', badge: 'NEW' },
+            { label: 'Goal B', icon: 'pi pi-fw pi-globe', url: 'https://www.primefaces.org/primeblocks-vue', target: '_blank' }
         ]
     },
     {
