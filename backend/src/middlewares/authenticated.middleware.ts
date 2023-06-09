@@ -25,7 +25,7 @@ export class AuthenticatedMiddleware implements NestMiddleware {
       const user = await User.findOneBy({
         id: decodedToken['userId'] as number,
       });
-      throw Error('token user not found');
+      if (!user) throw Error('token user not found');
       req.user = user;
     } catch (error) {
       throw new UnauthorizedException({ errors: ['unauthenticated'] });

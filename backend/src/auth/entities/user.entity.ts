@@ -8,6 +8,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { Token } from './token.entity';
+import { Transaction } from 'src/transactions/entities/transaction.entity';
 
 @Entity({ name: 'users' })
 export class User extends BaseEntity {
@@ -34,4 +35,7 @@ export class User extends BaseEntity {
 
   @OneToMany(() => Token, (token) => token.user, { onDelete: 'CASCADE' })
   tokens: Token[];
+
+  @OneToMany(() => Transaction, (trx) => trx.user, { onDelete: 'CASCADE' })
+  transactions: Token[];
 }

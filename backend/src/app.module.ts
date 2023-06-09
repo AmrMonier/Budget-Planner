@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common/interfaces';
 import { AuthenticatedMiddleware } from './middlewares/authenticated.middleware';
 import { VerifiedMiddleware } from './middlewares/verified.middleware';
+import { TransactionsModule } from './transactions/transactions.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { VerifiedMiddleware } from './middlewares/verified.middleware';
     }),
     MailerModule,
     AuthModule,
+    TransactionsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
