@@ -8,6 +8,9 @@ export class TransactionDto {
   @IsString()
   category: string;
 
+  @IsString()
+  title: string;
+
   @IsOptional()
   @IsString()
   note?: string;

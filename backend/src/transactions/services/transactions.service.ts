@@ -9,6 +9,7 @@ import { Transaction } from '../entities/transaction.entity';
 import { TransactionDto } from '../dto/transaction.dto';
 import { transactionType } from '../utils/transactions.types';
 import { expenses, income } from 'src/transactions/utils/categories.json';
+import { User } from 'src/auth/entities/user.entity';
 
 @Injectable()
 export class TransactionsService {
@@ -18,14 +19,16 @@ export class TransactionsService {
   ) {}
 
   async createTransaction(
-    userId: number,
+    user: User,
     transactionDto: TransactionDto,
   ): Promise<Transaction> {
     const transaction = this.transactionRepository.create({
       ...transactionDto,
-      user_id: userId,
+      user_id: user.id,
     });
-    return this.transactionRepository.save(transaction);
+    const trx = await this.transactionRepository.save(transaction);
+    await this.RecalculateUserMoney({ ...transaction, user });
+    return trx;
   }
 
   async getTransactions(userId: number, query: any): Promise<Transaction[]> {
@@ -54,32 +57,49 @@ export class TransactionsService {
   async updateTransaction(
     id: number,
     transactionDto: TransactionDto,
-    userId: number,
+    user: User,
   ): Promise<Transaction> {
     const transaction = await this.transactionRepository.findOneBy({ id });
     if (!transaction) {
       throw new NotFoundException('Transaction not found');
     }
-    if (transaction.user_id !== userId) {
+    if (transaction.user_id !== user.id) {
       throw new UnauthorizedException(
         'You are not authorized to update this transaction',
       );
     }
+    await this.RecalculateUserMoney({
+      ...transaction,
+      amount: -transaction.amount,
+      user,
+    });
     const updatedTransaction = { ...transaction, ...transactionDto };
-    return this.transactionRepository.save(updatedTransaction);
+    await this.transactionRepository.save(updatedTransaction);
+    await this.RecalculateUserMoney({
+      ...updatedTransaction,
+      user,
+    });
+    return updatedTransaction;
   }
 
-  async deleteTransaction(id: number, userId: number): Promise<void> {
+  async deleteTransaction(id: number, user: User): Promise<void> {
     const transaction = await this.transactionRepository.findOneBy({ id });
     if (!transaction) {
       throw new NotFoundException('Transaction not found');
     }
-    if (transaction.user_id !== userId) {
+    if (transaction.user_id !== user.id) {
       throw new UnauthorizedException(
         'You are not authorized to delete this transaction',
       );
     }
+
     await this.transactionRepository.remove(transaction);
+    await this.RecalculateUserMoney({
+      ...transaction,
+      amount: -transaction.amount,
+      user,
+    });
+    await user.save();
   }
 
   async getDistinctCategories(type: transactionType) {
@@ -96,5 +116,21 @@ export class TransactionsService {
       case 'income':
         return Array.from(new Set(income.concat(userCategories)));
     }
+  }
+
+  private async RecalculateUserMoney(trx: Transaction) {
+    const { user } = trx;
+
+    switch (trx.type) {
+      case 'income':
+        user.total_income += trx.amount;
+        break;
+      case 'expenses':
+        user.total_expenses += trx.amount;
+        break;
+    }
+
+    user.total = user.total_income - user.total_expenses;
+    await user.save();
   }
 }

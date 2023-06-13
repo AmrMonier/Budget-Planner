@@ -67,7 +67,7 @@ export class AuthService {
       throw new BadRequestException({ errors: ['Invalid email or password'] });
     }
 
-    if (!user.isVerified) {
+    if (!user.is_verified) {
       this.mailerService.sendVerificationMail(
         user,
         await this.generateVerificationToken(user.id, 'verify'),
@@ -134,13 +134,13 @@ export class AuthService {
     )
       throw new ForbiddenException({ errors: ['Invalid token'] });
     const user = await this.userRepository.findOneBy({ id: user_id });
-    if (user.isVerified) {
+    if (user.is_verified) {
       await verificationToken.remove();
       throw new ForbiddenException({
         errors: ['Account already been verified'],
       });
     }
-    user.isVerified = true;
+    user.is_verified = true;
     await user.save();
     await verificationToken.remove();
   }

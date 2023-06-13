@@ -15,6 +15,9 @@ export class Transaction {
   @PrimaryGeneratedColumn()
   id: number;
 
+  @Column({ default: 'aa' })
+  title: string;
+
   @Column()
   amount: number;
 

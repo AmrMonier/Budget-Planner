@@ -24,7 +24,7 @@ export class TransactionsController {
     @Req() { user }: Request,
     @Body() transactionDto: TransactionDto,
   ) {
-    return this.transactionsService.createTransaction(user?.id, transactionDto);
+    return this.transactionsService.createTransaction(user, transactionDto);
   }
 
   @Get()
@@ -48,15 +48,11 @@ export class TransactionsController {
     @Param() { id }: IdDto,
     @Body() transactionDto: TransactionDto,
   ) {
-    return this.transactionsService.updateTransaction(
-      id,
-      transactionDto,
-      user?.id,
-    );
+    return this.transactionsService.updateTransaction(id, transactionDto, user);
   }
 
   @Delete(':id')
   deleteTransaction(@Req() { user }: Request, @Param() { id }: IdDto) {
-    return this.transactionsService.deleteTransaction(id, user?.id);
+    return this.transactionsService.deleteTransaction(id, user);
   }
 }
