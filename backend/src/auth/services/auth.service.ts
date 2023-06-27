@@ -8,10 +8,9 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { compare, hash } from 'bcrypt';
-import { sign } from 'jsonwebtoken';
 import { User } from '../entities/user.entity';
 import { ConfigService } from 'src/config/config.service';
-import { MailerService } from 'src/mailer/mailer.service';
+import { EmailService } from 'src/mailer/mailer.service';
 import { Token } from '../entities/token.entity';
 import { randomBytes } from 'crypto';
 import { VerifyUserDto } from '../dto/verify-user.dto';
@@ -21,6 +20,7 @@ import {
   login,
   resetPassword,
 } from '../utils/auth.types';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class AuthService {
@@ -30,7 +30,8 @@ export class AuthService {
     @InjectRepository(Token)
     private readonly tokenRepository: Repository<Token>,
     private readonly configService: ConfigService,
-    private readonly mailerService: MailerService,
+    private readonly mailerService: EmailService,
+    private readonly jwtService: JwtService,
   ) {}
 
   async register(createUserDto: createUser): Promise<void> {
@@ -80,9 +81,7 @@ export class AuthService {
     }
 
     // Generate JWT token
-    const token = sign({ userId: user.id }, this.configService.env.APP_SECRET, {
-      expiresIn: '1h',
-    });
+    const token = this.jwtService.sign({ userId: user.id });
     return {
       user: { ...user, password: undefined },
       token,
@@ -112,6 +111,7 @@ export class AuthService {
         user: true,
       },
     });
+
     if (
       token ||
       token.expires_at.getTime() < Date.now() ||

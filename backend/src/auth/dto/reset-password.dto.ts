@@ -1,9 +1,9 @@
-import { IsNotEmpty, IsNumberString, IsStrongPassword } from 'class-validator';
+import { IsNotEmpty, IsString, IsStrongPassword } from 'class-validator';
 import { ForgetPasswordDto } from './forget-password.dto';
 
 export class ResetPasswordDto extends ForgetPasswordDto {
   @IsNotEmpty()
-  @IsNumberString()
+  @IsString()
   code: string;
 
   @IsNotEmpty()
