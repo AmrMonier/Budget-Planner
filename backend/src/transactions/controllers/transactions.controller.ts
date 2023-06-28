@@ -8,14 +8,19 @@ import {
   Post,
   Query,
   Req,
+  UseGuards,
 } from '@nestjs/common';
 import { TransactionDto } from '../dto/transaction.dto';
 import { TransactionsService } from '../services/transactions.service';
 import { Request } from 'express';
 import { IdDto } from 'src/global-dto/id.dto';
 import { TransactionTypeDto } from '../dto/transaction-type.dto';
+import { AuthGuard } from '@nestjs/passport';
+import { IsVerifiedGuard } from 'src/auth/utils/IsVerified.guard';
+import { GetTransactionDto } from '../dto/get-transaction.dto';
 
 @Controller('transactions')
+@UseGuards(AuthGuard('jwt'), IsVerifiedGuard)
 export class TransactionsController {
   constructor(private readonly transactionsService: TransactionsService) {}
 
@@ -28,7 +33,7 @@ export class TransactionsController {
   }
 
   @Get()
-  getTransactions(@Req() { user }: Request, @Query() query) {
+  getTransactions(@Req() { user }: Request, @Query() query: GetTransactionDto) {
     return this.transactionsService.getTransactions(user?.id, query);
   }
 

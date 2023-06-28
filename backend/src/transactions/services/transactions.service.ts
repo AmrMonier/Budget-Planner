@@ -4,18 +4,23 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, SelectQueryBuilder } from 'typeorm';
 import { Transaction } from '../entities/transaction.entity';
 import { TransactionDto } from '../dto/transaction.dto';
-import { transactionType } from '../utils/transactions.types';
+import {
+  FilterEnum,
+  GetTransactionQuery,
+  transactionType,
+} from '../utils/transactions.types';
 import { expenses, income } from 'src/transactions/utils/categories.json';
 import { User } from 'src/auth/entities/user.entity';
-
 @Injectable()
 export class TransactionsService {
   constructor(
     @InjectRepository(Transaction)
     private readonly transactionRepository: Repository<Transaction>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
   ) {}
 
   async createTransaction(
@@ -26,80 +31,110 @@ export class TransactionsService {
       ...transactionDto,
       user_id: user.id,
     });
-    const trx = await this.transactionRepository.save(transaction);
-    await this.RecalculateUserMoney({ ...transaction, user });
-    return trx;
-  }
-
-  async getTransactions(userId: number, query: any): Promise<Transaction[]> {
-    const transactions = await this.transactionRepository.find({
-      where: {
-        user_id: userId,
-        ...query,
-      },
-    });
-    return transactions;
-  }
-
-  async getTransactionById(id: number, userId: number): Promise<Transaction> {
-    const transaction = await this.transactionRepository.findOneBy({ id });
-    if (!transaction) {
-      throw new NotFoundException('Transaction not found');
-    }
-    if (transaction.user_id !== userId) {
-      throw new UnauthorizedException(
-        'You are not authorized to access this transaction',
-      );
-    }
+    await this.saveAndUpdateMoney(transaction, user);
     return transaction;
   }
 
   async updateTransaction(
-    id: number,
+    transactionId: number,
     transactionDto: TransactionDto,
     user: User,
   ): Promise<Transaction> {
-    const transaction = await this.transactionRepository.findOneBy({ id });
-    if (!transaction) {
-      throw new NotFoundException('Transaction not found');
-    }
-    if (transaction.user_id !== user.id) {
-      throw new UnauthorizedException(
-        'You are not authorized to update this transaction',
-      );
-    }
-    await this.RecalculateUserMoney({
-      ...transaction,
-      amount: -transaction.amount,
-      user,
-    });
-    const updatedTransaction = { ...transaction, ...transactionDto };
-    await this.transactionRepository.save(updatedTransaction);
-    await this.RecalculateUserMoney({
-      ...updatedTransaction,
-      user,
-    });
-    return updatedTransaction;
+    const transaction = await this.getTransaction(transactionId, user);
+    transaction.amount = transactionDto.amount;
+    transaction.category = transactionDto.category;
+    transaction.date = transactionDto.date;
+    await this.saveAndUpdateMoney(transaction, user);
+    return transaction;
   }
 
-  async deleteTransaction(id: number, user: User): Promise<void> {
-    const transaction = await this.transactionRepository.findOneBy({ id });
-    if (!transaction) {
+  async deleteTransaction(transactionId: number, user: User): Promise<void> {
+    const transaction = await this.getTransaction(transactionId, user);
+    await this.transactionRepository.remove(transaction);
+    await this.updateUserMoney(user, transaction, true);
+  }
+
+  private async getTransaction(
+    transactionId: number,
+    user: User,
+  ): Promise<Transaction> {
+    const transaction = await this.transactionRepository.findOneBy({
+      id: transactionId,
+    });
+    if (!transaction || transaction.user_id !== user.id) {
       throw new NotFoundException('Transaction not found');
     }
-    if (transaction.user_id !== user.id) {
-      throw new UnauthorizedException(
-        'You are not authorized to delete this transaction',
-      );
+    return transaction;
+  }
+
+  async getTransactions(
+    userId: number,
+    query: GetTransactionQuery,
+  ): Promise<object> {
+    const queryBuilder: SelectQueryBuilder<Transaction> =
+      this.transactionRepository.createQueryBuilder('t');
+    // Apply filters
+    if (query.from) {
+      queryBuilder.andWhere('t.date >= :startDate', {
+        startDate: query.from,
+      });
+    }
+    if (query.to) {
+      queryBuilder.andWhere('t.date <= :endDate', {
+        endDate: query.to,
+      });
+    }
+    const interval = query.interval;
+    // Apply interval
+    switch (interval) {
+      case FilterEnum.DAILY:
+        queryBuilder.addSelect(
+          "TO_CHAR(t.date, 'YYYY-MM-DD')",
+          'transaction_date',
+        );
+        break;
+      // case FilterEnum.WEEKLY:
+      //   queryBuilder.addSelect(
+      //     "TO_CHAR(t.date, 'Mon-FMDD')",
+      //     'transaction_date',
+      //   );
+      //   break;
+      case FilterEnum.MONTHLY:
+        queryBuilder.addSelect(
+          "TRIM(TO_CHAR(t.date, 'YYYY Month'))",
+          'transaction_date',
+        );
+        break;
+
+      case FilterEnum.YEARLY:
+        queryBuilder.addSelect(
+          "TRIM(TO_CHAR(t.date, 'YYYY'))",
+          'transaction_date',
+        );
+        break;
+      default:
+        throw new Error('Invalid interval specified.');
     }
 
-    await this.transactionRepository.remove(transaction);
-    await this.RecalculateUserMoney({
-      ...transaction,
-      amount: -transaction.amount,
-      user,
-    });
-    await user.save();
+    queryBuilder
+      .leftJoin('t.user', 'user')
+      .andWhere('user.id = :userId', { userId })
+      .orderBy('transaction_date', 'ASC')
+      .addOrderBy('t.id', 'ASC');
+
+
+    // Join user and execute the query
+    const transactions = await queryBuilder.getRawMany();
+
+    const transactionsByDate = transactions.reduce((acc, t) => {
+      const { transaction_date, ...rest } = t;
+      if (!acc[transaction_date]) {
+        acc[transaction_date] = [];
+      }
+      acc[transaction_date].push(rest);
+      return acc;
+    }, {});
+    return transactionsByDate;
   }
 
   async getDistinctCategories(type: transactionType) {
@@ -117,20 +152,31 @@ export class TransactionsService {
         return Array.from(new Set(income.concat(userCategories)));
     }
   }
+  private async saveAndUpdateMoney(
+    transaction: Transaction,
+    user: User,
+  ): Promise<void> {
+    await this.transactionRepository.save(transaction);
+    await this.updateUserMoney(user, transaction);
+  }
 
-  private async RecalculateUserMoney(trx: Transaction) {
-    const { user } = trx;
-
-    switch (trx.type) {
-      case 'income':
-        user.total_income += trx.amount;
-        break;
-      case 'expenses':
-        user.total_expenses += trx.amount;
-        break;
+  private async updateUserMoney(
+    user: User,
+    transaction: Transaction,
+    isDelete = false,
+  ): Promise<void> {
+    let amount = transaction.amount;
+    if (isDelete) amount *= -1;
+    if (transaction.category === 'income') {
+      user.total_income += amount;
+    } else {
+      user.total_expenses += amount;
     }
-
     user.total = user.total_income - user.total_expenses;
-    await user.save();
+    await this.userRepository.save(user);
+  }
+
+  getTransactionById(id: number, userId: number): Promise<Transaction> {
+    return this.transactionRepository.findOneByOrFail({ id, user_id: userId });
   }
 }

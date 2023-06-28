@@ -1,5 +1,6 @@
 import { User } from 'src/auth/entities/user.entity';
 import {
+  BaseEntity,
   Column,
   CreateDateColumn,
   Entity,
@@ -11,7 +12,7 @@ import {
 import { transactionType } from '../utils/transactions.types';
 
 @Entity()
-export class Transaction {
+export class Transaction extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
