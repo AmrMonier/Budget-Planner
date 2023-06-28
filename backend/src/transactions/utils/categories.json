@@ -1,0 +1,4 @@
+{
+  "income": ["salary", "gift", "profit"],
+  "expenses": ["bills", "entertainment", "grocery", "clothes", "sport"]
+}

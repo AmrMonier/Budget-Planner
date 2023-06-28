@@ -13,6 +13,7 @@ export class ConfigService {
     DB_NAME: string;
     DB_PASSWORD: string;
     DB_PORT: number;
+    DB_SSL: boolean;
     NODEMAILER_PASSWORD: string;
     NODEMAILER_USER: string;
     APP_SECRET: string;
@@ -40,6 +41,7 @@ export class ConfigService {
       DB_NAME: Joi.string().required(),
       DB_PASSWORD: Joi.string().required(),
       DB_PORT: Joi.number().required().port(),
+      DB_SSL: Joi.boolean().required(),
       NODEMAILER_PASSWORD: Joi.string().required(),
       NODEMAILER_USER: Joi.string().required(),
       APP_SECRET: Joi.string().required(),
@@ -59,6 +61,7 @@ export class ConfigService {
       DB_PASSWORD: config.DB_PASSWORD,
       DB_PORT: +config.DB_PORT,
       DB_USER: config.DB_USER,
+      DB_SSL: config.DB_SSL === 'true',
       PORT: +config.PORT,
       NODEMAILER_PASSWORD: config.NODEMAILER_PASSWORD,
       NODEMAILER_USER: config.NODEMAILER_USER,

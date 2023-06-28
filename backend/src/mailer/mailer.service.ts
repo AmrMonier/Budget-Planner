@@ -1,89 +1,64 @@
 import { Injectable } from '@nestjs/common';
+import { MailerService } from '@nest-modules/mailer';
+import { join } from 'path';
 import { ConfigService } from 'src/config/config.service';
 import { User } from 'src/auth/entities/user.entity';
-import { Transporter, createTransport, SendMailOptions } from 'nodemailer';
-import { readFileSync } from 'fs';
-import { join } from 'path';
-import { compile as CompileTemplate } from 'handlebars';
-import { InformativeMail, TokenizedMail } from './utils/mailer.types';
+
 @Injectable()
-export class MailerService {
-  private mailService: Transporter;
+export class EmailService {
+  constructor(
+    private readonly mailerService: MailerService,
+    private configService: ConfigService,
+  ) {}
 
-  constructor(private readonly configService: ConfigService) {
-    this.mailService = createTransport({
-      service: 'gmail',
-      auth: {
-        user: this.configService.env.NODEMAILER_USER,
-        pass: this.configService.env.NODEMAILER_PASSWORD,
-      },
+  async sendEmail(email: string, name: string): Promise<void> {
+    // const template = join(__dirname, '..', 'templates', 'welcome.hbs');
+    const context = { name };
+    const subject = 'Welcome to our app!';
+    const to = email;
+
+    await this.mailerService.sendMail({
+      to,
+      subject,
+      template: 'verify-account.hbs',
+      context,
     });
   }
-
-  async sendVerificationMail(user: User, token: string) {
-    const dynamicTemplateData = {
+  async sendVerificationMail(user: User, token: string): Promise<void> {
+    const context = {
+      user,
+      token,
+      app_url: this.configService.env.APP_URL,
+      app_name: 'Budget Planner',
       url: `${this.configService.env.APP_URL}/auth/verify?token=${token}&user_id=${user.id}`,
-      app_name: 'Budget Planner',
-      app_url: this.configService.env.APP_URL,
     };
-    const htmlTemplate = readFileSync(
-      join(__dirname, '../', 'mails', 'verify-account.html'),
-      'utf-8',
-    );
-    const template = CompileTemplate<TokenizedMail>(htmlTemplate);
-    return this.send({
-      to: user.email,
-      from: this.configService.env.NODEMAILER_USER,
-      subject: 'E-Mail verification',
-      html: template(dynamicTemplateData),
+    const subject = 'Verify your account';
+    const to = user['email'];
+
+    await this.mailerService.sendMail({
+      to,
+      subject,
+      template: 'verify-account.hbs',
+      context,
     });
   }
 
-  async sendForgetPasswordMail(user: User, token: string) {
-    const dynamicTemplateData = {
-      url: `${this.configService.env.APP_URL}/auth/reset-password?token=${token}&user_id=${user.id}`,
-      app_name: 'Budget Planner',
+  async sendForgetPasswordMail(user: object, token: string): Promise<void> {
+    const context = {
+      user,
+      token,
       app_url: this.configService.env.APP_URL,
-    };
-
-    const htmlTemplate = readFileSync(
-      join(__dirname, '../', 'mails', 'forget-password.html'),
-      'utf-8',
-    );
-
-    const template = CompileTemplate<TokenizedMail>(htmlTemplate);
-    return this.send({
-      to: user.email,
-      from: this.configService.env.NODEMAILER_USER,
-      subject: 'Reset your Budget planner Password',
-      html: template(dynamicTemplateData),
-    });
-  }
-  async sendRestedPasswordMail(user: User) {
-    const dynamicTemplateData: InformativeMail = {
       app_name: 'Budget Planner',
-      app_url: this.configService.env.APP_URL,
+      url: `${this.configService.env.APP_URL}/auth/reset-password?token=${token}&user_id=${user['id']}`,
     };
+    const subject = 'Reset your password';
+    const to = user['email'];
 
-    const htmlTemplate = readFileSync(
-      join(__dirname, '../', 'mails', 'forget-password.html'),
-      'utf-8',
-    );
-
-    const template = CompileTemplate<InformativeMail>(htmlTemplate);
-    return this.send({
-      to: user.email,
-      from: this.configService.env.NODEMAILER_USER,
-      subject: 'Reset your Budget planner Password',
-      html: template(dynamicTemplateData),
+    await this.mailerService.sendMail({
+      to,
+      subject,
+      template: 'forget-password.hbs',
+      context,
     });
-  }
-
-  async send(emailPayload: SendMailOptions): Promise<void> {
-    try {
-      await this.mailService.sendMail(emailPayload);
-    } catch (error) {
-      throw new Error('Failed to send email.');
-    }
   }
 }

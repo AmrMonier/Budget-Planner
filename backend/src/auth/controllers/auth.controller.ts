@@ -8,6 +8,8 @@ import {
   Query,
   HttpCode,
   HttpStatus,
+  Req,
+  UseGuards,
 } from '@nestjs/common';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { AuthService } from '../services/auth.service';
@@ -15,6 +17,9 @@ import { LoginDto } from '../dto/login.dto';
 import { ForgetPasswordDto } from '../dto/forget-password.dto';
 import { ResetPasswordDto } from '../dto/reset-password.dto';
 import { VerifyUserDto } from '../dto/verify-user.dto';
+import { Request } from 'express';
+import { AuthGuard } from '@nestjs/passport';
+import { IsVerifiedGuard } from '../utils/IsVerified.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -64,5 +69,12 @@ export class AuthController {
       code,
     });
     return { message: 'password reset successfully' };
+  }
+
+  @Get('/me')
+  @UseGuards(AuthGuard('jwt'), IsVerifiedGuard)
+  // @UseGuards(IsVerifiedGuard)
+  async getLoggedInUser(@Req() { user }: Request) {
+    return { ...user, password: undefined };
   }
 }
